@@ -1,22 +1,37 @@
-//
-//  ContentView.swift
-//  ocr_33
-//
-//  Created by Ayşe Selin Korkmaz on 22.02.2025.
-//
-
 import SwiftUI
 
 struct ContentView: View {
+    @State private var showOCRScanner = false
+
     var body: some View {
         VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-            Text("Hello, world!")
+            Text("MRZ OCR Scanner")
+                .font(.largeTitle)
+                .padding()
+
+            Button(action: {
+                showOCRScanner = true
+            }) {
+                Text("Start Scanning")
+                    .font(.title2)
+                    .padding()
+                    .background(Color.blue)
+                    .foregroundColor(.white)
+                    .cornerRadius(10)
+            }
         }
-        .padding()
+        .sheet(isPresented: $showOCRScanner) {
+            MRZOCRViewControllerWrapper()
+        }
     }
+}
+
+struct MRZOCRViewControllerWrapper: UIViewControllerRepresentable {
+    func makeUIViewController(context: Context) -> MRZOCRViewController {
+        return MRZOCRViewController()
+    }
+    
+    func updateUIViewController(_ uiViewController: MRZOCRViewController, context: Context) {}
 }
 
 #Preview {
