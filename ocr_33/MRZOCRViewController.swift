@@ -3,6 +3,7 @@ import Vision
 import AVFoundation
 import CoreImage
 import Accelerate
+//mrzocrcontroller
 
 class MRZOCRViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDelegate {
     
