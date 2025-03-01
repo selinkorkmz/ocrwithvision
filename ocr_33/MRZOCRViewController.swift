@@ -8,11 +8,19 @@ class MRZOCRViewController: UIViewController, AVCaptureVideoDataOutputSampleBuff
     
     var captureSession: AVCaptureSession!
     var previewLayer: AVCaptureVideoPreviewLayer!
+    var overlayView: UIView!
+    var instructionLabel: UILabel!
     var detectedMRZ: String = ""
+    var detectionRect: CGRect!
+    var isReadyToRead = false
+    var stableFrameCount = 0
+    let requiredStableFrames = 10  // Require 10 stable frames before reading MRZ
     
     override func viewDidLoad() {
         super.viewDidLoad()
         setupCamera()
+        setupOverlay()
+        setupInstructionLabel()
     }
     
     func setupCamera() {
@@ -46,39 +54,35 @@ class MRZOCRViewController: UIViewController, AVCaptureVideoDataOutputSampleBuff
         captureSession.startRunning()
     }
     
+    func setupOverlay() {
+        overlayView = UIView(frame: view.bounds)
+        overlayView.backgroundColor = UIColor.black.withAlphaComponent(0.5)
+        view.addSubview(overlayView)
+        
+        detectionRect = CGRect(x: view.bounds.midX - 150, y: view.bounds.midY - 100, width: 300, height: 200)
+        let path = UIBezierPath(rect: view.bounds)
+        let cutoutPath = UIBezierPath(roundedRect: detectionRect, cornerRadius: 10)
+        path.append(cutoutPath.reversing())
+        
+        let maskLayer = CAShapeLayer()
+        maskLayer.path = path.cgPath
+        overlayView.layer.mask = maskLayer
+    }
+    
+    func setupInstructionLabel() {
+        instructionLabel = UILabel(frame: CGRect(x: 20, y: detectionRect.maxY + 20, width: view.bounds.width - 40, height: 50))
+        instructionLabel.text = "Please align your ID card within the frame and hold your phone steady."
+        instructionLabel.textColor = .white
+        instructionLabel.textAlignment = .center
+        instructionLabel.font = UIFont.boldSystemFont(ofSize: 18)
+        instructionLabel.numberOfLines = 0
+        view.addSubview(instructionLabel)
+    }
+    
     func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
         guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
         
-        if let processedBuffer = preprocessImage(pixelBuffer) {
-            recognizeText(from: processedBuffer)
-        }
-    }
-    
-    func preprocessImage(_ pixelBuffer: CVPixelBuffer) -> CVPixelBuffer? {
-        let ciImage = CIImage(cvPixelBuffer: pixelBuffer)
-        
-        let context = CIContext()
-        let grayscale = CIFilter(name: "CIColorControls")
-        grayscale?.setValue(ciImage, forKey: kCIInputImageKey)
-        grayscale?.setValue(0.0, forKey: kCIInputSaturationKey)
-        grayscale?.setValue(1.2, forKey: kCIInputContrastKey)
-        
-        guard let outputImage = grayscale?.outputImage, let cgImage = context.createCGImage(outputImage, from: outputImage.extent) else {
-            return nil
-        }
-        
-        let ciContext = CIContext(options: nil)
-        var newPixelBuffer: CVPixelBuffer?
-        let attributes = [kCVPixelBufferCGImageCompatibilityKey: true, kCVPixelBufferCGBitmapContextCompatibilityKey: true] as CFDictionary
-        
-        CVPixelBufferCreate(kCFAllocatorDefault, cgImage.width, cgImage.height, kCVPixelFormatType_32BGRA, attributes, &newPixelBuffer)
-        
-        if let newPixelBuffer = newPixelBuffer {
-            ciContext.render(CIImage(cgImage: cgImage), to: newPixelBuffer)
-            return newPixelBuffer
-        }
-        
-        return nil
+        recognizeText(from: pixelBuffer)
     }
     
     func recognizeText(from pixelBuffer: CVPixelBuffer) {
@@ -95,10 +99,19 @@ class MRZOCRViewController: UIViewController, AVCaptureVideoDataOutputSampleBuff
                 }
             }
             
-            if mrzLines.count >= 3 {
+            if mrzLines.count == 3 && mrzLines.allSatisfy({ $0.count == 30 }) {
+                self.stableFrameCount += 1
+                if self.stableFrameCount >= self.requiredStableFrames {
+                    DispatchQueue.main.async {
+                        self.instructionLabel.text = "Scanning..."
+                        self.captureSession.stopRunning()
+                        self.processMRZ(mrzLines: mrzLines)
+                    }
+                }
+            } else {
+                self.stableFrameCount = 0
                 DispatchQueue.main.async {
-                    self.captureSession.stopRunning()
-                    self.processMRZ(mrzLines: mrzLines)
+                    self.instructionLabel.text = "Please align your ID card within the frame and hold your phone steady."
                 }
             }
         }
@@ -127,6 +140,8 @@ class MRZOCRViewController: UIViewController, AVCaptureVideoDataOutputSampleBuff
         let alert = UIAlertController(title: "MRZ Extracted", message: "Surname: \(surname)\nGiven Names: \(givenNames)\nID Number: \(idNumber)", preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: "OK", style: .default, handler: { _ in
             self.captureSession.startRunning()
+            self.stableFrameCount = 0
+            self.instructionLabel.text = "Please align your ID card within the frame and hold your phone steady."
         }))
         present(alert, animated: true)
     }
