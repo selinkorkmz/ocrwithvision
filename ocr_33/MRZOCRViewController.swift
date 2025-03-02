@@ -3,7 +3,7 @@ import Vision
 import AVFoundation
 import CoreImage
 import Accelerate
-//mrzocrcontroller
+
 
 class MRZOCRViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDelegate {
     
@@ -131,8 +131,8 @@ class MRZOCRViewController: UIViewController, AVCaptureVideoDataOutputSampleBuff
     func processMRZ(mrzLines: [String]) {
         let idNumber = String(mrzLines[0].dropLast(3).suffix(11))
         let surnameComponents = mrzLines[2].split(separator: "<", omittingEmptySubsequences: false)
-        let surname = surnameComponents[0]
-        let givenNames = surnameComponents[1...].joined(separator: " ").replacingOccurrences(of: "<", with: " ")
+        let surname = surnameComponents[0].replacingOccurrences(of: "<", with: "")
+        let givenNames = surnameComponents[1...].joined(separator: " ").replacingOccurrences(of: "<", with: " ").replacingOccurrences(of: "<", with: "")
         
         showForm(surname: String(surname), givenNames: givenNames, idNumber: idNumber)
     }
