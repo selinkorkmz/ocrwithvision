@@ -1,1 +1,1 @@
-# ocr3
+# MRZ OCR APP FOR ID CARD
