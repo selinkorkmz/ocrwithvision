@@ -1,6 +1,6 @@
 # **MRZ OCR Scanner for ID Cards**  
 
-The **MRZ OCR Scanner** is a powerful iOS application that extracts **Machine Readable Zone (MRZ) data** from ID cards using **Apple's Vision framework**. This app utilizes **real-time OCR (Optical Character Recognition)** through the device’s camera to accurately detect and process MRZ information with high efficiency.
+The **MRZ OCR Scanner** is an iOS application that extracts **Machine Readable Zone (MRZ) data** from ID cards using **Apple's Vision framework**. This app utilizes **real-time OCR (Optical Character Recognition)** through the device’s camera to accurately detect and process MRZ information with high efficiency.
 
 ## **Technologies Used**  
 - **Swift** – Native iOS development  
